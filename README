@@ -1,0 +1,210 @@
+# get_multi_assemblies
+Script for interrogating ENA with respect to a single project associated with multiple genome assemblies and optionally fetching data
+This script is geared towards getting all of the *assembled and annotated
+sequence data* for all of the assemblies (genomes) associated with a
+single project (SRA Study). (I.e. NOT the reads files.) It fetches data from
+ENA.
+
+Mandatory argument: project ID.
+
+optional boolean flags:
+-setids:	retrieve and display WGS Sequence Set IDs (whole ID lines)
+-idranges:	retrieve and display ranges of Assembly contig IDs
+-contigs:	retrieve the sequence data (EMBL format) for each range of
+		Assembly contig IDs (only valid if -idranges is used)
+-rewrite:	force overwrite of file whose name is specified by -seqsets
+		if that file already exists (only valid if -seqsets is used)
+
+optional parameters:
+-seqsets <OUTPUT_FILE_NAME>
+	- writes all of the sequence set data (EMBL format) to this file;
+	- this also speeds up the retrievals (see -setids and -idranges)
+	because the retrieving is done from this file, instead of on-the-fly
+	for each retrieval.
+
+Examples:
+
+$ get_genomes_assemblies.bash PRJNA388337
+
+- does nothing.
+
+To fetch IDs (on the fly) of associated WGS Sequence Sets:
+
+$ ../get_genomes_assemblies.bash PRJNA388337 -setids
+wget -q -O - 'https://www.ebi.ac.uk/ena/data/view/PRJNA388337&portal=wgs_set&display=text' | grep '^ID '
+ID   NIHM01000000; SV 01; linear; genomic DNA; SET; PRO; 78 SQ.
+ID   NIHN01000000; SV 01; linear; genomic DNA; SET; PRO; 72 SQ.
+ID   NIHO01000000; SV 01; linear; genomic DNA; SET; PRO; 132 SQ.
+ID   NIHP01000000; SV 01; linear; genomic DNA; SET; PRO; 105 SQ.
+ID   NIHQ01000000; SV 01; linear; genomic DNA; SET; PRO; 87 SQ.
+ID   NIHR01000000; SV 01; linear; genomic DNA; SET; PRO; 120 SQ.
+ID   NIHS01000000; SV 01; linear; genomic DNA; SET; PRO; 126 SQ.
+ID   NIHT01000000; SV 01; linear; genomic DNA; SET; PRO; 92 SQ.
+ID   NIHU01000000; SV 01; linear; genomic DNA; SET; PRO; 58 SQ.
+ID   NIHV01000000; SV 01; linear; genomic DNA; SET; PRO; 59 SQ.
+ID   NIHW01000000; SV 01; linear; genomic DNA; SET; PRO; 97 SQ.
+
+(ID lines written to standard output; commentary to standard error).
+
+To do the same, but saving the complete WGS Sequence Sets EMBL-format file
+first (N.B. this does NOT contain any sequence data):
+
+$ ../get_genomes_assemblies.bash PRJNA388337 -seqsets PRJNA388337_seqsets.embl -setids
+wget -O PRJNA388337_seqsets.embl -nc 'https://www.ebi.ac.uk/ena/data/view/PRJNA388337&portal=wgs_set&display=text'
+--2018-01-30 18:38:28--  https://www.ebi.ac.uk/ena/data/view/PRJNA388337&portal=wgs_set&display=text
+Resolving www.ebi.ac.uk (www.ebi.ac.uk)... 193.62.193.80
+Connecting to www.ebi.ac.uk (www.ebi.ac.uk)|193.62.193.80|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/plain]
+Saving to: âPRJNA388337_seqsets.emblâ
+
+    [  <=> ...
+] 38,766       177KB/s   in 0.2s
+
+2018-01-30 18:38:30 (177 KB/s) - âPRJNA388337_seqsets.emblâ saved [38766]
+
+grep '^ID ' PRJNA388337_seqsets.embl
+ID   NIHM01000000; SV 01; linear; genomic DNA; SET; PRO; 78 SQ.
+ID   NIHN01000000; SV 01; linear; genomic DNA; SET; PRO; 72 SQ.
+ID   NIHO01000000; SV 01; linear; genomic DNA; SET; PRO; 132 SQ.
+ID   NIHP01000000; SV 01; linear; genomic DNA; SET; PRO; 105 SQ.
+ID   NIHQ01000000; SV 01; linear; genomic DNA; SET; PRO; 87 SQ.
+ID   NIHR01000000; SV 01; linear; genomic DNA; SET; PRO; 120 SQ.
+ID   NIHS01000000; SV 01; linear; genomic DNA; SET; PRO; 126 SQ.
+ID   NIHT01000000; SV 01; linear; genomic DNA; SET; PRO; 92 SQ.
+ID   NIHU01000000; SV 01; linear; genomic DNA; SET; PRO; 58 SQ.
+ID   NIHV01000000; SV 01; linear; genomic DNA; SET; PRO; 59 SQ.
+ID   NIHW01000000; SV 01; linear; genomic DNA; SET; PRO; 97 SQ.
+
+These sequence IDs are of "WGS Sequence Sets" - that is, master records
+containing no sequence data; each corresponds to a range of sequence records.
+
+To obtain a list of the ranges of the IDs associated with each set:
+
+$ ../get_genomes_assemblies.bash PRJNA388337 -idranges
+wget -q -O - 'https://www.ebi.ac.uk/ena/data/view/PRJNA388337&portal=wgs_set&display=text' | grep '^WGS ' | awk '{ print $2 }'
+WGS   NIHM01000001-NIHM01000078
+WGS   NIHN01000001-NIHN01000072
+WGS   NIHO01000001-NIHO01000132
+WGS   NIHP01000001-NIHP01000105
+WGS   NIHQ01000001-NIHQ01000087
+WGS   NIHR01000001-NIHR01000120
+WGS   NIHS01000001-NIHS01000126
+WGS   NIHT01000001-NIHT01000092
+WGS   NIHU01000001-NIHU01000058
+WGS   NIHV01000001-NIHV01000059
+WGS   NIHW01000001-NIHW01000097
+NIHM01000001-NIHM01000078 NIHN01000001-NIHN01000072 NIHO01000001-NIHO01000132 NIHP01000001-NIHP01000105 NIHQ01000001-NIHQ01000087 NIHR01000001-NIHR01000120 NIHS01000001-NIHS01000126 NIHT01000001-NIHT01000092 NIHU01000001-NIHU01000058 NIHV01000001-NIHV01000059 NIHW01000001-NIHW01000097
+
+- note that after the tabular format, the result is additionally delivered in
+a string which would be suitable for iteration using a simple Bash statement.
+Both that line and the table are written to standard output.
+
+The above command fetches this information on-the-fly. In contrast, as
+before, the overall WGS Sequence Sets EMBL-format file can be retrieved and
+the data extracted from there by adding the -seqsets <FILENAME> clause:
+
+$ ../get_genomes_assemblies.bash PRJNA388337 -seqsets PRJNA388337_seqsets.embl -idranges
+wget -O PRJNA388337_seqsets.embl -nc 'https://www.ebi.ac.uk/ena/data/view/PRJNA388337&portal=wgs_set&display=text'
+File `PRJNA388337_seqsets.embl' already there; not retrieving.
+grep '^WGS ' PRJNA388337_seqsets.embl
+WGS   NIHM01000001-NIHM01000078
+WGS   NIHN01000001-NIHN01000072
+WGS   NIHO01000001-NIHO01000132
+WGS   NIHP01000001-NIHP01000105
+WGS   NIHQ01000001-NIHQ01000087
+WGS   NIHR01000001-NIHR01000120
+WGS   NIHS01000001-NIHS01000126
+WGS   NIHT01000001-NIHT01000092
+WGS   NIHU01000001-NIHU01000058
+WGS   NIHV01000001-NIHV01000059
+WGS   NIHW01000001-NIHW01000097
+grep '^WGS ' PRJNA388337_seqsets.embl | awk '{ print $2 }'
+NIHM01000001-NIHM01000078 NIHN01000001-NIHN01000072 NIHO01000001-NIHO01000132 NIHP01000001-NIHP01000105 NIHQ01000001-NIHQ01000087 NIHR01000001-NIHR01000120 NIHS01000001-NIHS01000126 NIHT01000001-NIHT01000092 NIHU01000001-NIHU01000058 NIHV01000001-NIHV01000059 NIHW01000001-NIHW01000097
+
+Each of the single WGS Sequence Sets is specified by a single range, such as
+'NIHM01000001-NIHM01000078'. That specifies a EMBL-format file with one
+sequence record per (contig) sequence, so 78 in this example. To obtain them:
+
+
+
+$ ../get_genomes_assemblies.bash PRJNA388337 -seqsets PRJNA388337_seqsets.embl -idranges -contigs
+wget -O PRJNA388337_seqsets.embl -nc 'https://www.ebi.ac.uk/ena/data/view/PRJNA388337&portal=wgs_set&display=text'
+File `PRJNA388337_seqsets.embl' already there; not retrieving.
+grep '^WGS ' PRJNA388337_seqsets.embl
+WGS   NIHM01000001-NIHM01000078
+WGS   NIHN01000001-NIHN01000072
+WGS   NIHO01000001-NIHO01000132
+WGS   NIHP01000001-NIHP01000105
+WGS   NIHQ01000001-NIHQ01000087
+WGS   NIHR01000001-NIHR01000120
+WGS   NIHS01000001-NIHS01000126
+WGS   NIHT01000001-NIHT01000092
+WGS   NIHU01000001-NIHU01000058
+WGS   NIHV01000001-NIHV01000059
+WGS   NIHW01000001-NIHW01000097
+grep '^WGS ' PRJNA388337_seqsets.embl | awk '{ print $2 }'
+NIHM01000001-NIHM01000078 NIHN01000001-NIHN01000072 NIHO01000001-NIHO01000132 NIHP01000001-NIHP01000105 NIHQ01000001-NIHQ01000087 NIHR01000001-NIHR01000120 NIHS01000001-NIHS01000126 NIHT01000001-NIHT01000092 NIHU01000001-NIHU01000058 NIHV01000001-NIHV01000059 NIHW01000001-NIHW01000097
+wget -O NIHM01000001-NIHM01000078.embl 'https://www.ebi.ac.uk/ena/data/view/NIHM01000001-NIHM01000078&display=text'
+--2018-01-30 19:05:22--  https://www.ebi.ac.uk/ena/data/view/NIHM01000001-NIHM01000078&display=text
+Resolving www.ebi.ac.uk (www.ebi.ac.uk)... 193.62.193.80
+Connecting to www.ebi.ac.uk (www.ebi.ac.uk)|193.62.193.80|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/plain]
+Saving to: âNIHM01000001-NIHM01000078.emblâ
+
+    [                              <=> ] 5,838,053    613KB/s
+(gedit:27819): Gtk-WARNING **: Calling Inhibit failed: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.SessionManager was not provided by any .service files
+    [                                  <=> ] 7,858,475    491KB/s   in 13s
+
+2018-01-30 19:05:35 (582 KB/s) - âNIHM01000001-NIHM01000078.emblâ saved [7858475]
+
+wget -O NIHN01000001-NIHN01000072.embl 'https://www.ebi.ac.uk/ena/data/view/NIHN01000001-NIHN01000072&display=text'
+--2018-01-30 19:05:35--  https://www.ebi.ac.uk/ena/data/view/NIHN01000001-NIHN01000072&display=text
+Resolving www.ebi.ac.uk (www.ebi.ac.uk)... 193.62.193.80
+Connecting to www.ebi.ac.uk (www.ebi.ac.uk)|193.62.193.80|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/plain]
+Saving to: âNIHN01000001-NIHN01000072.emblâ
+
+    [                 <=> ] 7,838,778    368KB/s   in 16s
+
+(8<--SNIP--8<)
+
+wget -O NIHW01000001-NIHW01000097.embl 'https://www.ebi.ac.uk/ena/data/view/NIHW01000001-NIHW01000097&display=text'
+--2018-01-30 19:07:58--  https://www.ebi.ac.uk/ena/data/view/NIHW01000001-NIHW01000097&display=text
+Resolving www.ebi.ac.uk (www.ebi.ac.uk)... 193.62.193.80
+Connecting to www.ebi.ac.uk (www.ebi.ac.uk)|193.62.193.80|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/plain]
+Saving to: âNIHW01000001-NIHW01000097.emblâ
+
+    [                              <=>] 7,624,189    376KB/s   in 14s
+
+2018-01-30 19:08:12 (540 KB/s) - âNIHW01000001-NIHW01000097.emblâ saved [7624189]
+
+(that could also be performed omitting '-seqsets PRJNA388337_seqsets.embl'
+in which case the extraction of the ID ranges would again be done on the fly).
+
+Note that the names of the output sequence files are irrevocably auto-
+determined:
+
+$ ls *.embl
+
+NIHM01000001-NIHM01000078.embl
+NIHN01000001-NIHN01000072.embl
+NIHO01000001-NIHO01000132.embl
+NIHP01000001-NIHP01000105.embl
+NIHQ01000001-NIHQ01000087.embl
+NIHR01000001-NIHR01000120.embl
+NIHS01000001-NIHS01000126.embl
+NIHT01000001-NIHT01000092.embl
+NIHU01000001-NIHU01000058.embl
+NIHV01000001-NIHV01000059.embl
+NIHW01000001-NIHW01000097.embl
+
+
+Note that -setids, -idranges and -contigs can all be used together (indeed
+-idranges is a prerequisite for -contigs).
+
+
